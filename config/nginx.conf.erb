@@ -1,0 +1,51 @@
+<%
+ENV["PORT"] ||= "5000"
+ENV["CORES"] ||= "4"
+ENV["WORKERS"] ||= "1024"
+ENV["FORCE_HTTPS"] ||= "1"
+%>
+
+daemon off;
+#Heroku dynos have at least 4 cores.
+worker_processes <%= ENV['NGINX_WORKERS'] || 4 %>;
+worker_rlimit_nofile <%= ENV["FILELIMIT"] || '100000' %>;
+
+events {
+  accept_mutex on;
+  worker_connections <%= ENV["WORKERS"] %>;
+}
+
+http {
+  gzip on;
+  gzip_comp_level 2;
+  gzip_min_length 512;
+
+  server_tokens off;
+
+  log_format snowplow '$msec $http_x_real_ip $http_x_request_id $query_string "$http_user_agent"';
+  access_log logs/nginx/access.log snowplow;
+  error_log logs/nginx/error.log;
+
+  include mime.types;
+  default_type application/octet-stream;
+  sendfile on;
+
+  #Must read the body in 5 seconds.
+  client_body_timeout 5;
+
+  open_file_cache max=10000 inactive=30s;
+  open_file_cache_valid    60s;
+  open_file_cache_min_uses 2;
+  open_file_cache_errors   on;
+
+  server {
+    listen <%= ENV["PORT"] %>;
+    server_name _;
+    keepalive_timeout 5;
+
+    location = /i {
+      alias                   public/i.gif;
+      add_header content-type image/gif;
+    }
+  }
+}
