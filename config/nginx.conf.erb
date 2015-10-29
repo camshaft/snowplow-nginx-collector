@@ -47,5 +47,9 @@ http {
       alias                   public/i.gif;
       add_header content-type image/gif;
     }
+
+    location / {
+      return 404;
+    }
   }
 }
